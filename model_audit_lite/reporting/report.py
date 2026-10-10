@@ -3,8 +3,8 @@ from __future__ import annotations
 
 import datetime
 
-from .conversion_audit import ChatTemplateDiff, ProbeDiff
-from .probes.runner import ProbeReport
+from ..audit.conversion import ChatTemplateDiff, ProbeDiff
+from ..probes.runner import ProbeReport
 
 CATEGORY_LABELS_JA = {
     "instruction-override": "指示上書き",

@@ -1,8 +1,8 @@
 import math
 
-from model_audit_lite.conversion_audit import ProbeDiff, ProbeRegression
-from model_audit_lite.scan import assess
-from model_audit_lite.stats import detectable_difference, mcnemar_exact, wilson_interval
+from model_audit_lite.audit.conversion import ProbeDiff, ProbeRegression
+from model_audit_lite.reporting.scan import assess
+from model_audit_lite.reporting.stats import detectable_difference, mcnemar_exact, wilson_interval
 
 CLEAN = {"repo_id": "me/m", "total_files": 1, "risky_pickle_files": [], "custom_code_files": [], "checksums": {}}
 

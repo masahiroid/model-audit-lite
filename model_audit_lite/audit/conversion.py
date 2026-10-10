@@ -20,7 +20,7 @@ from dataclasses import dataclass, field
 from huggingface_hub import HfApi, hf_hub_download
 from huggingface_hub.utils import EntryNotFoundError
 
-from .probes.runner import ProbeReport
+from ..probes.runner import ProbeReport
 
 
 def _gguf_template(repo_id: str, repo_type: str = "model") -> str | None:

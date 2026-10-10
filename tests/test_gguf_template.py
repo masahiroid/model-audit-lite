@@ -1,6 +1,6 @@
 import struct
 
-from model_audit_lite.gguf_template import read_chat_template
+from model_audit_lite.audit.gguf_template import read_chat_template
 
 
 def _s(x: str) -> bytes:
@@ -30,7 +30,7 @@ def test_none_when_absent():
 
 
 def test_small_blocks_cross_boundaries():
-    from model_audit_lite import gguf_template as g
+    from model_audit_lite.audit import gguf_template as g
     tpl = _s("tokenizer.chat_template") + struct.pack("<I", 8) + _s("X" * 5000)
     data = _gguf([tpl])
     r = g._Reader(_fetch(data), block=16)

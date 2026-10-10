@@ -1,7 +1,7 @@
 import json
 
-from model_audit_lite.conversion_audit import ChatTemplateDiff, ProbeDiff, ProbeRegression
-from model_audit_lite.scan import assess, run_scan
+from model_audit_lite.audit.conversion import ChatTemplateDiff, ProbeDiff, ProbeRegression
+from model_audit_lite.reporting.scan import assess, run_scan
 
 CLEAN = {"repo_id": "me/m", "total_files": 3, "risky_pickle_files": [], "custom_code_files": [], "checksums": {"model.safetensors": "a" * 64}}
 

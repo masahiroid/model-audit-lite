@@ -8,7 +8,7 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from .bom import build_bom
+from ..audit.bom import build_bom
 from .stats import detectable_difference, format_rate, mcnemar_exact
 from .report import build_chat_template_diff_section, build_file_audit_section, build_probe_diff_section, build_probe_section
 

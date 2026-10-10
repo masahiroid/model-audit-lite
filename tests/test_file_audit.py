@@ -1,4 +1,4 @@
-from model_audit_lite.file_audit import is_risky_pickle
+from model_audit_lite.audit.files import is_risky_pickle
 
 
 def test_real_pickle_formats_are_flagged():

@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 from typing import Callable
 
-from .constants import TRUST_REMOTE_CODE_ENABLED_VALUE, TRUST_REMOTE_CODE_ENV_VAR
+from ..constants import TRUST_REMOTE_CODE_ENABLED_VALUE, TRUST_REMOTE_CODE_ENV_VAR
 
 GenerateFn = Callable[..., str]
 

@@ -1,7 +1,7 @@
 import datetime
 
-from model_audit_lite.bom import build_bom, detect_formats, merge_into
-from model_audit_lite.conversion_audit import ChatTemplateDiff, ProbeDiff, ProbeRegression
+from model_audit_lite.audit.bom import build_bom, detect_formats, merge_into
+from model_audit_lite.audit.conversion import ChatTemplateDiff, ProbeDiff, ProbeRegression
 
 AUDIT = {
     "repo_id": "me/model-mlx-4bit",

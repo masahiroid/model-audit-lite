@@ -27,14 +27,14 @@ from __future__ import annotations
 import argparse
 import sys
 
-from .backends import free_model_memory, load_backend
+from .probes.backends import free_model_memory, load_backend
 from .constants import DEFAULT_MAX_TOKENS
-from .conversion_audit import diff_chat_template, diff_probe_results
-from .file_audit import audit_repo
+from .audit.conversion import diff_chat_template, diff_probe_results
+from .audit.files import audit_repo
 from .probes.behaviors import load_behaviors
 from .probes.runner import run_probes
 from .probes.wrapping import build_probes, load_wrappers
-from .report import build_file_audit_section, build_probe_section, write_comparison_report, write_security_md
+from .reporting.report import build_file_audit_section, build_probe_section, write_comparison_report, write_security_md
 
 
 def _resolve_probes(args):
@@ -165,7 +165,7 @@ def main(argv=None):
     elif args.command == "scan":
         from huggingface_hub import HfApi
 
-        from .scan import run_scan
+        from .reporting.scan import run_scan
 
         api = HfApi()
         info = api.model_info(args.repo_id)
@@ -201,7 +201,7 @@ def main(argv=None):
 
         from huggingface_hub import HfApi
 
-        from .bom import build_bom, merge_into
+        from .audit.bom import build_bom, merge_into
 
         api = HfApi()
         info = api.model_info(args.repo_id)

@@ -1,6 +1,6 @@
-from .conversion_audit import ChatTemplateDiff, ProbeDiff, ProbeRegression, diff_chat_template, diff_probe_results
-from .file_audit import audit_repo, RISKY_EXTENSIONS
-from .report import (
+from .audit.conversion import ChatTemplateDiff, ProbeDiff, ProbeRegression, diff_chat_template, diff_probe_results
+from .audit.files import audit_repo, RISKY_EXTENSIONS
+from .reporting.report import (
     build_chat_template_diff_section,
     build_file_audit_section,
     build_probe_diff_section,
@@ -11,7 +11,7 @@ from .report import (
 from .probes.runner import run_probes, load_prompts
 from .probes.behaviors import load_behaviors
 from .probes.wrapping import build_probes, load_wrappers
-from .backends import load_backend, free_model_memory
+from .probes.backends import load_backend, free_model_memory
 
 __all__ = [
     "audit_repo",
@@ -36,4 +36,4 @@ __all__ = [
     "write_comparison_report",
 ]
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"

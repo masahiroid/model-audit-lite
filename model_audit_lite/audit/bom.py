@@ -17,7 +17,7 @@ import datetime
 import json
 import uuid
 
-from . import __version__
+from .. import __version__
 
 NS = "model-audit-lite"  # property-name prefix
 
@@ -35,7 +35,7 @@ _FORMATS = [
     (".pth", "pytorch-pickle"),
 ]
 
-from .file_audit import _COREML_BLOB  # noqa: E402
+from .files import _COREML_BLOB  # noqa: E402
 
 
 def detect_formats(filenames: list[str], tags: list[str] | None = None) -> list[str]:

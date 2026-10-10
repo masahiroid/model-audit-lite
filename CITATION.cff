@@ -14,7 +14,7 @@ abstract: >-
 repository-code: "https://github.com/masahiroid/model-audit-lite"
 repository-artifact: "https://pypi.org/project/model-audit-lite/"
 license: MIT
-version: "0.6.0"
+version: "0.7.0"
 date-released: "2026-10-03"
 doi: 10.5281/zenodo.23122770
 keywords:

@@ -109,9 +109,24 @@ Keeping the attack phrasing in an external file (not in the PyPI package) means
 the tool measures safeguard robustness without distributing novel attacks. Pair
 it with a benign-behaviors CSV in a second run to measure over-refusal.
 
+## Package layout
+
+The package is organized by concern:
+
+- `model_audit_lite/audit/` — static analysis, no model loading (`files`,
+  `conversion`, `gguf_template`, `bom`)
+- `model_audit_lite/probes/` — anything that runs the model (`backends`,
+  `runner`, `behaviors`, `wrapping`)
+- `model_audit_lite/reporting/` — output assembly (`report`, `scan`, `stats`)
+- `constants.py`, `cli.py` — shared values and the command-line front end
+
+The stable public API is the top level: `from model_audit_lite import ...`.
+(In 0.7.0 the internal modules moved into the subpackages above; deep imports
+like `model_audit_lite.file_audit` became `model_audit_lite.audit.files`.)
+
 ## Usage (Python API)
 
-The probe runner is backend-agnostic — pass any `generate_fn(prompt: str) -> str`:
+The probe runner is backend-agnostic — pass any `generate_fn(prompt, prefill="") -> str`:
 
 ```python
 from model_audit_lite import audit_repo, run_probes, write_security_md
