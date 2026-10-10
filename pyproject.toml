@@ -3,7 +3,6 @@ name = "model-audit-lite"
 version = "0.7.0"
 description = "Lightweight safety audit for Hugging Face models: file-distribution audit, a conversion-integrity diff (chat_template + safety-probe regressions between a source and a converted repo), and a small known-pattern prompt-injection probe suite."
 readme = "README.md"
-license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md"]
 license = { text = "MIT" }
 requires-python = ">=3.9"
 authors = [
