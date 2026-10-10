@@ -270,4 +270,7 @@ If you find a real gap this suite misses, that's the point — add a case and se
 
 ## License
 
+MIT. Third-party content under `attack_probes/` (JailbreakBench, HarmBench) is MIT; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+
 MIT
