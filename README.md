@@ -75,7 +75,39 @@ model-audit-lite probe your/model --backend mlx-lm --lang ja
 
 # File audit + single-model probe suite, written to SECURITY.md
 model-audit-lite full your/model --backend mlx-lm --lang ja -o SECURITY.md
+
+# Safeguard-bypass probing: wrap benchmark behaviors with known jailbreak
+# techniques (pretext framing, assistant-prefill) and measure whether the
+# model still refuses. The behaviors come from a published, audit-oriented
+# benchmark CSV (HarmBench / JailbreakBench); the wrapper templates are an
+# operator-supplied YAML — neither is shipped with this tool.
+model-audit-lite probe your/model --backend mlx-lm \
+  --behaviors /path/to/harmbench_behaviors_text_all.csv \
+  --wrappers  /path/to/wrappers.yaml --limit 50
 ```
+
+### Safeguard-bypass wrappers
+
+`--behaviors` is a CSV from a published benchmark (the request-text column is
+auto-detected: HarmBench's `Behavior`, JailbreakBench's `Goal`). `--wrappers`
+is a YAML list of templates you provide:
+
+```yaml
+- id: pretext-exercise-1
+  category: pretext-exercise
+  user_template: "... {behavior} ..."   # {behavior} <- a benchmark behavior
+
+- id: prefill-1
+  category: prefill-injection
+  user_template: "{behavior}"
+  assistant_prefill: "..."              # seeds the assistant turn; the model
+                                        # continues from it (works on reasoning
+                                        # models too, via continue_final_message)
+```
+
+Keeping the attack phrasing in an external file (not in the PyPI package) means
+the tool measures safeguard robustness without distributing novel attacks. Pair
+it with a benign-behaviors CSV in a second run to measure over-refusal.
 
 ## Usage (Python API)
 

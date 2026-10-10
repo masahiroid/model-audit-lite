@@ -25,50 +25,54 @@
 from __future__ import annotations
 
 import argparse
-import gc
 import sys
 
+from .backends import free_model_memory, load_backend
+from .constants import DEFAULT_MAX_TOKENS
 from .conversion_audit import diff_chat_template, diff_probe_results
 from .file_audit import audit_repo
+from .probes.behaviors import load_behaviors
 from .probes.runner import run_probes
+from .probes.wrapping import build_probes, load_wrappers
 from .report import build_file_audit_section, build_probe_section, write_comparison_report, write_security_md
 
 
-def _make_generate_fn(backend: str, repo_id: str, max_tokens: int, thinking: str = "default"):
-    # thinking: default (template default) | on | off  -> chat-template `enable_thinking` for reasoning models (e.g. Qwen3.5 family)
-    tmpl_kwargs = {} if thinking == "default" else {"enable_thinking": thinking == "on"}
-    if backend == "mlx-lm":
-        from mlx_lm import load, generate
+def _resolve_probes(args):
+    """Returns (probes, source_label). With --behaviors/--wrappers, probes come
+    from the benchmark CSV wrapped by the operator's templates; otherwise the
+    built-in prompt set named by --probe-set / --lang is used (probes=None)."""
+    behaviors_path = getattr(args, "behaviors", None)
+    wrappers_path = getattr(args, "wrappers", None)
+    if behaviors_path or wrappers_path:
+        if not (behaviors_path and wrappers_path):
+            raise SystemExit("--behaviors and --wrappers must be given together")
+        behaviors = load_behaviors(behaviors_path, limit=getattr(args, "limit", 0))
+        probes = build_probes(behaviors, load_wrappers(wrappers_path))
+        return probes, f"wrapped:{len(probes)}"
+    return None, getattr(args, "probe_set", None) or args.lang
 
-        model, tokenizer = load(repo_id)
 
-        def generate_fn(prompt: str) -> str:
-            messages = [{"role": "user", "content": prompt}]
-            text = tokenizer.apply_chat_template(messages, add_generation_prompt=True, **tmpl_kwargs)
-            return generate(model, tokenizer, prompt=text, max_tokens=max_tokens, verbose=False)
+def _run_probe_set(backend, repo_id, max_tokens, thinking, probes, source):
+    fn = load_backend(backend, repo_id, max_tokens, thinking)
+    try:
+        return run_probes(fn, prompts=probes, source=source)
+    finally:
+        del fn
+        free_model_memory()  # the two models are never resident together
 
-        return generate_fn
 
-    if backend == "transformers":
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
-
-        tokenizer = AutoTokenizer.from_pretrained(repo_id)
-        model = AutoModelForCausalLM.from_pretrained(repo_id)
-        model.eval()
-
-        def generate_fn(prompt: str) -> str:
-            messages = [{"role": "user", "content": prompt}]
-            inputs = tokenizer.apply_chat_template(
-                messages, add_generation_prompt=True, return_tensors="pt", **tmpl_kwargs
-            )
-            with torch.no_grad():
-                out = model.generate(inputs, max_new_tokens=max_tokens, do_sample=False)
-            return tokenizer.decode(out[0][inputs.shape[1]:], skip_special_tokens=True)
-
-        return generate_fn
-
-    raise ValueError(f"Unknown backend: {backend}. Use 'mlx-lm' or 'transformers', or use the Python API with a custom generate_fn.")
+def _add_wrapped_probe_args(sub_parser) -> None:
+    sub_parser.add_argument(
+        "--behaviors", default=None,
+        help="CSV of behaviors from an audit benchmark (HarmBench/JailbreakBench). Requires --wrappers.",
+    )
+    sub_parser.add_argument(
+        "--wrappers", default=None,
+        help="YAML of safeguard-bypass wrapper templates (operator-supplied; not shipped). Requires --behaviors.",
+    )
+    sub_parser.add_argument(
+        "--limit", type=int, default=0, help="Use only the first N behaviors (0 = all).",
+    )
 
 
 def main(argv=None):
@@ -85,8 +89,9 @@ def main(argv=None):
     p_probe.add_argument("--backend", default="mlx-lm", choices=["mlx-lm", "transformers"])
     p_probe.add_argument("--lang", default="ja", choices=["ja", "en"])
     p_probe.add_argument("--probe-set", default=None, help="Probe set: ja, en, ja-injection, or a YAML path (default: same as --lang)")
-    p_probe.add_argument("--max-tokens", type=int, default=300)
+    p_probe.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
     p_probe.add_argument("--thinking", default="default", choices=["default", "on", "off"], help="chat-template enable_thinking for reasoning models")
+    _add_wrapped_probe_args(p_probe)
     p_probe.add_argument("-o", "--output", default=None)
 
     p_full = sub.add_parser("full", help="Run both file audit and safety probes")
@@ -130,8 +135,9 @@ def main(argv=None):
     p_scan.add_argument("--base-backend", default="transformers", choices=["mlx-lm", "transformers"])
     p_scan.add_argument("--probe-set", default=None, help="ja, en, ja-injection or a YAML path (default: --lang)")
     p_scan.add_argument("--lang", default="ja", choices=["ja", "en"])
-    p_scan.add_argument("--max-tokens", type=int, default=300)
+    p_scan.add_argument("--max-tokens", type=int, default=DEFAULT_MAX_TOKENS)
     p_scan.add_argument("--thinking", default="default", choices=["default", "on", "off"], help="chat-template enable_thinking for reasoning models")
+    _add_wrapped_probe_args(p_scan)
     p_scan.add_argument("-o", "--out-dir", default="audit-out")
     p_scan.add_argument("--fail-on", default="fail", choices=["fail", "warn", "never"], help="Exit non-zero on this status (for CI)")
 
@@ -143,15 +149,16 @@ def main(argv=None):
         _emit(md, args.output)
 
     elif args.command == "probe":
-        generate_fn = _make_generate_fn(args.backend, args.repo_id, args.max_tokens, args.thinking)
-        report = run_probes(generate_fn, source=args.probe_set or args.lang)
+        probes, source = _resolve_probes(args)
+        report = _run_probe_set(args.backend, args.repo_id, args.max_tokens, args.thinking, probes, source)
         md = build_probe_section(report, lang=args.lang)
         _emit(md, args.output)
 
     elif args.command == "full":
         audit_result = audit_repo(args.repo_id)
-        generate_fn = _make_generate_fn(args.backend, args.repo_id, args.max_tokens)
-        probe_report = run_probes(generate_fn, source=args.probe_set or args.lang)
+        probe_report = _run_probe_set(
+            args.backend, args.repo_id, args.max_tokens, "default", None, args.probe_set or args.lang
+        )
         md = write_security_md(audit_result=audit_result, probe_report=probe_report, repo_id=args.repo_id, lang=args.lang)
         _emit(md, args.output)
 
@@ -167,16 +174,12 @@ def main(argv=None):
         probe_report = probe_diff = None
         probe_total = 0
         if args.probes:
-            source = args.probe_set or args.lang
-            fn = _make_generate_fn(args.backend, args.repo_id, args.max_tokens, args.thinking)
-            probe_report = run_probes(fn, source=source)
-            del fn
-            _free_model_memory()   # the two models are never resident together
+            probes, source = _resolve_probes(args)
+            probe_report = _run_probe_set(args.backend, args.repo_id, args.max_tokens, args.thinking, probes, source)
             if args.base:
-                fn = _make_generate_fn(args.base_backend, args.base, args.max_tokens, args.thinking)
-                base_report = run_probes(fn, source=source)
-                del fn
-                _free_model_memory()
+                base_report = _run_probe_set(
+                    args.base_backend, args.base, args.max_tokens, args.thinking, probes, source
+                )
                 probe_diff = diff_probe_results(base_report, probe_report)
                 probe_total = probe_report.total
         summary = run_scan(
@@ -223,10 +226,8 @@ def main(argv=None):
         probe_diff = None
         probe_total = 0
         if args.probes:
-            base_fn = _make_generate_fn(args.base_backend, args.base_repo_id, args.max_tokens)
-            derived_fn = _make_generate_fn(args.derived_backend, args.derived_repo_id, args.max_tokens)
-            base_report = run_probes(base_fn, source=args.lang)
-            derived_report = run_probes(derived_fn, source=args.lang)
+            base_report = _run_probe_set(args.base_backend, args.base_repo_id, args.max_tokens, "default", None, args.lang)
+            derived_report = _run_probe_set(args.derived_backend, args.derived_repo_id, args.max_tokens, "default", None, args.lang)
             probe_diff = diff_probe_results(base_report, derived_report)
             probe_total = derived_report.total
         md = write_comparison_report(
@@ -238,23 +239,6 @@ def main(argv=None):
             lang=args.lang,
         )
         _emit(md, args.output)
-
-
-def _free_model_memory():
-    gc.collect()
-    try:
-        import mlx.core as mx
-
-        mx.clear_cache()
-    except Exception:
-        pass
-    try:
-        import torch
-
-        if torch.backends.mps.is_available():
-            torch.mps.empty_cache()
-    except Exception:
-        pass
 
 
 def _emit(text: str, output: str | None):

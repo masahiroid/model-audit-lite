@@ -68,7 +68,35 @@ model-audit-lite probe your/model --backend mlx-lm --lang ja
 
 # 配布物監査 + 単一モデルのプローブをSECURITY.mdに書き出す
 model-audit-lite full your/model --backend mlx-lm --lang ja -o SECURITY.md
+
+# セーフガード回避プローブ: ベンチマークの有害依頼を既知の手法（演習などの口実、
+# アシスタント応答のプレフィル）で包み、モデルがまだ拒否するかを測定します。
+# 依頼文は検査目的で公開されたベンチマークCSV（HarmBench / JailbreakBench）、
+# 包み方テンプレートは利用者が用意するYAMLで、どちらも本ツールには同梱しません。
+model-audit-lite probe your/model --backend mlx-lm \
+  --behaviors /path/to/harmbench_behaviors_text_all.csv \
+  --wrappers  /path/to/wrappers.yaml --limit 50
 ```
+
+### セーフガード回避テンプレート
+
+`--behaviors` は公開ベンチマークのCSV（依頼文の列は自動判別: HarmBench は `Behavior`、
+JailbreakBench は `Goal`）。`--wrappers` は利用者が用意するテンプレートのYAMLリストです。
+
+```yaml
+- id: pretext-exercise-1
+  category: pretext-exercise
+  user_template: "... {behavior} ..."   # {behavior} にベンチマークの依頼が入る
+
+- id: prefill-1
+  category: prefill-injection
+  user_template: "{behavior}"
+  assistant_prefill: "..."              # アシスタント応答の冒頭を先に与え、
+                                        # モデルにその続きを書かせる（思考モデルにも対応）
+```
+
+攻撃の文面を外部ファイルに置く（PyPIパッケージには含めない）ことで、新規の攻撃を
+配布せずにセーフガードの頑健性を測れます。無害な対照CSVで別途実行すれば、過剰拒否も測れます。
 
 ## 使い方（Python API）
 

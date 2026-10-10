@@ -9,6 +9,9 @@ from .report import (
     write_security_md,
 )
 from .probes.runner import run_probes, load_prompts
+from .probes.behaviors import load_behaviors
+from .probes.wrapping import build_probes, load_wrappers
+from .backends import load_backend, free_model_memory
 
 __all__ = [
     "audit_repo",
@@ -18,6 +21,11 @@ __all__ = [
     "write_security_md",
     "run_probes",
     "load_prompts",
+    "load_behaviors",
+    "build_probes",
+    "load_wrappers",
+    "load_backend",
+    "free_model_memory",
     "diff_chat_template",
     "diff_probe_results",
     "ChatTemplateDiff",
@@ -28,4 +36,4 @@ __all__ = [
     "write_comparison_report",
 ]
 
-__version__ = "0.5.3"
+__version__ = "0.6.0"

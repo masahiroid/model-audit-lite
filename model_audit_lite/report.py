@@ -15,6 +15,8 @@ CATEGORY_LABELS_JA = {
     "privilege-escalation": "権限昇格・社会工学",
     "illegal-activity-instructions": "違法行為の指南",
     "system-prompt-extraction": "システムプロンプト抽出",
+    "pretext-exercise": "口実（演習・創作を装う）",
+    "prefill-injection": "思考・応答の注入（プレフィル）",
 }
 
 _STRINGS = {
