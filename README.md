@@ -27,7 +27,38 @@ checks:
    system-prompt extraction, etc.) run against a single model, with a simple
    heuristic pass/fail marker.
 
-## Scope, honestly
+## Why this tool exists
+
+Application developers don't always use the original model. They may use a
+quantized or format-converted derivative, in Japanese, with their own inference
+settings. Published evaluations don't necessarily cover that combination, and
+quantization doesn't affect safety in one uniform way, so it matters to check
+the model you actually use. At the same time, full red-teaming or large-scale
+evaluation takes expertise, compute, and time.
+
+model-audit-lite aims to be a lightweight first-pass check that comes before
+that: a look at how a model responds to known attack patterns. Its main use is
+**checking the behavior of the single model you actually use**; running the
+same probes on the source and converted models is a related use. Together with
+the Japanese probes, it gives you leads on where to look more closely.
+
+The goal is not to certify a model as "safe".
+
+- Read the actual responses, not just the scores, and use them to decide which
+  input paths, tool permissions, and pre-execution confirmations to test most
+  carefully in your application.
+- Interpret responses to harmful requests separately from following
+  instructions embedded in external documents (indirect prompt injection); they
+  involve different use cases and risks.
+- A failure is a starting point for investigation; a pass is not a guarantee of
+  safety. The tool's results alone can't tell you whether a whole application is
+  safe, and countermeasures need to be verified separately in the real
+  application. Basic defenses are still needed even when probes pass.
+
+For people who publish or convert models, it can also serve as supporting
+material for telling users the evaluation conditions and the behavior observed.
+
+## Scope
 
 This is **not** a substitute for a real red-team benchmark — tools like
 Meta's CyberSecEval, ETH Zurich's AgentDojo, or scanners like NVIDIA's garak
